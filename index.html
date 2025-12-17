@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- PWA Goal: Theme color for mobile browser bars -->
+    <meta name="theme-color" content="#0ea5e9">
+    <title>SUZI | KOBEDENSHI AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom font for a clean, modern look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        /* 1. Page Background */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: auto; /* Allow scrolling for the body */
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #e0f2fe 0%, #ffffff 100%); /* Lighter background */
+        }
+
+        /* The main app container centers itself on desktop */
+        #app {
+            /* Ensures full viewport height on mobile, centers on desktop */
+            min-height: 100vh;
+        }
+
+        /* Ensure smooth animation for the loading indicator */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .5;
+            }
+        }
+
+        .loading-dot {
+            animation: pulse 1.5s infinite;
+        }
+
+            .loading-dot:nth-child(2) {
+                animation-delay: 0.3s;
+            }
+
+            .loading-dot:nth-child(3) {
+                animation-delay: 0.6s;
+            }
+
+        /* Enforce app-like shell layout on desktop */
+        @media (min-width: 768px) {
+            #app {
+                min-height: 90vh; /* Shorter height on desktop */
+                border-radius: 1rem; /* Rounded corners for the desktop app window */
+                overflow: hidden;
+            }
+        }
+    </style>
+</head>
+<body class="h-full flex items-center justify-center p-0">
+    <!-- Goal 3: New App Shell Layout (Mobile-first, centers on md) -->
+    <div id="app"
+         class="w-full h-screen flex flex-col bg-white
+                md:max-w-4xl md:mx-auto
+                shadow-2xl border border-slate-100">
+
+        <!-- Goal 4: Header Design (Fixed Top Bar) -->
+        <header class="h-16 px-4 flex items-center justify-between
+                       border-b bg-white sticky top-0 z-30 shadow-sm flex-shrink-0">
+
+            <div class="flex items-center space-x-4">
+
+                <!-- Logo/Icon Area -->
+                <div class="w-10 h-10 rounded-full bg-sky-500 flex items-center justify-center shadow-md flex-shrink-0 overflow-hidden border border-white">
+                    <img src="suzi-profile.png"
+                         alt="SUZI Profile Photo"
+                         class="w-full h-full object-cover p-1"
+                         onerror="this.onerror=null; this.src='https://placehold.co/40x40/0ea5e9/ffffff?text=AI';" />
+                </div>
+
+                <!-- Title Area (Goal 4 Optional) -->
+                <h1 class="text-base font-semibold tracking-tight text-gray-900 flex flex-col">
+                    SUZI
+                    <span class="text-xs text-slate-400 font-medium tracking-normal">KOBEDENSHI AI</span>
+                </h1>
+            </div>
+
+            <div class="flex items-center space-x-2">
+
+                <!-- Auth Buttons (MOVED HERE from Input Bar) -->
+                <div id="google-login-wrapper" class="flex items-center">
+                    <button id="google-login-btn"
+                            class="text-xs bg-red-500 py-1.5 px-3 rounded-full font-medium text-white shadow-md hover:bg-red-600 whitespace-nowrap transition duration-150"
+                            title="Student Login">
+                        Login (Student)
+                    </button>
+                </div>
+
+                <button id="auth-toggle-btn"
+                        class="text-xs bg-gray-500 py-1.5 px-3 rounded-full font-medium text-white shadow-md transition hover:bg-gray-600 hidden whitespace-nowrap duration-150"
+                        title="Logout">
+                    Logout
+                </button>
+
+                <!-- Status Badge (JS will populate with icon) -->
+                <span id="status-badge" class="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium transition duration-200">
+                    Connecting...
+                </span>
+
+                <!-- User Info Status -->
+                <span id="user-info-status" class="text-xs text-slate-500 hidden whitespace-nowrap"></span>
+
+                <!-- Menu Button -->
+                <button id="menu-btn"
+                        class="h-10 w-10 text-gray-600 rounded-full flex items-center justify-center transition hover:bg-slate-100 hidden"
+                        title="Menu / Settings">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat messages container (Goal 5: Soft background, flexible scroll) -->
+        <div id="chat-messages"
+             class="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-slate-50">
+        </div>
+
+        <!-- Goal 7: Input Bar (Fixed Bottom Bar) - SIMPLIFIED STRUCTURE -->
+        <div id="chat-form"
+             class="p-3 flex items-center gap-2 bg-white sticky bottom-0 flex-shrink-0 border-t
+                    shadow-lg rounded-t-xl md:rounded-b-xl">
+            <!-- Added shadow and rounded corners -->
+
+            <input type="text" id="user-input" placeholder="Type your message..."
+                   class="flex-1 h-10 px-4 rounded-full bg-slate-100 focus:bg-white focus:ring-2 focus:ring-sky-500 border-none outline-none text-sm text-gray-800 transition duration-150"
+                   required autocomplete="off">
+
+            <button type="button" id="send-btn"
+                    class="h-10 w-10 rounded-full bg-sky-500 text-white flex items-center justify-center
+                           transition duration-150 hover:bg-sky-600 active:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                    title="Send Message">
+                <i data-lucide="send" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <!-- End of #chat-form div -->
+    </div>
+
+    <!-- Memory Modal UI -->
+    <div id="memory-modal"
+         class="fixed inset-0 bg-black/40 flex items-center justify-center hidden z-50">
+
+        <div class="bg-white rounded-xl shadow-xl p-6 w-80 space-y-4">
+            <h2 class="text-lg font-bold text-gray-800">User Memory</h2>
+
+            <p class="text-sm text-gray-600">
+                この操作は、この端末に保存されている SUZI の記憶を削除します。
+            </p>
+
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-memory-btn"
+                        class="px-4 py-2 text-sm rounded-lg bg-gray-200 hover:bg-gray-300 transition">
+                    Cancel
+                </button>
+
+                <button id="delete-memory-btn"
+                        class="px-4 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 transition">
+                    Delete Memory
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- End Memory Modal UI -->
+    <!-- Notification Toast UI (STEP 1) -->
+    <div id="toast"
+         class="fixed top-4 left-1/2 -translate-x-1/2 z-50
+                hidden bg-white shadow-xl rounded-xl
+                px-4 py-3 flex items-center gap-3
+                border border-slate-200
+                transition-all duration-300">
+        <span class="text-sky-500">🔔</span>
+        <span id="toast-text" class="text-sm text-gray-800"></span>
+    </div>
+    <!-- End Notification Toast UI -->
+
+
+    <script type="module">
+
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import {
+            getDatabase,
+            ref,
+            push
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        import {
+            getAuth, signInAnonymously, onAuthStateChanged, signOut,
+            GoogleAuthProvider,
+            signInWithPopup
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // Set up Lucide icons
+        window.onload = () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        };
+
+        // FIX 5: Moved SYSTEM_PROMPT to global scope
+        const SYSTEM_PROMPT = `
+You are SUZI, the friendly and highly knowledgeable AI Assistant for KOBEDENSHI College (testing).
+
+IDENTITY & CREATOR
+- You are the official testing AI assistant for KOBEDENSHI College (神戸電子専門学校).
+- This specific application, SUZI, was created by Information Technology Department student
+  KYAW KHAING TUN (キョーカイーントン).
+- When asked "Who created you?" or similar, you MUST ONLY mention the student creator,
+  KYAW KHAING TUN. Do NOT mention Google, OpenAI, or any foundational model developer.
+
+DATA & CONTEXT (KOBEDENSHI CLOUD)
+- You receive real-time JSON data from the KOBEDENSHI cloud.
+- This JSON may contain:
+  - Live camera data (keys like "live_main_tower_3f", "live_hall", "live_entrance", "live_data", etc.)
+  - Announcements, events, schedules, or other system information.
+- You may also receive a [USER MEMORY] block, which summarizes the user's past interests. Use this to personalize your response and maintain context.
+
+YOUR RULES FOR USING JSON
+- You MUST treat the provided JSON as the ground truth for:
+  - What is happening now in each camera location.
+  - Current announcements, events, and system status.
+- You MUST NOT repeat the raw JSON back to the user.
+  - Read the JSON. Summarize it in clear, natural language.
+- If the JSON contains multiple locations, focus on relevant locations or give an overview.
+
+PRIVATE CLOUD RULES (NEW)
+- You may receive TWO cloud data sources in the context:
+  1) [KOBEDENSHI Public Cloud Data] (always available if connected)
+  2) [PRIVATE STUDENT CLOUD DATA – CONFIDENTIAL] (only when authenticated)
+
+- Private cloud data is CONFIDENTIAL.
+- If private data exists, prioritize it over public data for all related questions.
+- NEVER mention authentication, passwords, student login status, or cloud separation (Public/Private) to users.
+- If private data is missing, behave normally using public data only.
+
+LIVE CAMERA BEHAVIOR (“WHAT DO YOU SEE?”)
+- If the user asks about the current view ("What do you see?", "今何が見える？") then you SHOULD:
+  - Use ONLY the live camera JSON provided in the context (keys like "live_*").
+  - Describe what is happening based on data.
+
+GENERAL ASSISTANT BEHAVIOR
+- Your primary role is to provide information, guidance, and assistance.
+
+LANGUAGE RULES
+- You are fully bilingual in English and Japanese.
+- Reply in the same language that the user used.
+- Be polite, friendly, and professional. For Japanese, use 丁寧語.
+
+LIMITATIONS
+- Explain that you cannot process image files if asked to analyze them.
+`;
+
+
+        // --- Dual Cloud URLs ---
+        const PUBLIC_CLOUD_URL = "https://cloud-2-9ndj.onrender.com";
+        const PRIVATE_CLOUD_URL = "https://cloud-1-gqld.onrender.com";
+
+        // --- Data States ---
+        let collegeData = null; // 🌐 public cloud data
+        let privateCollegeData = null; // 🔐 private cloud data
+
+        // --- Global Firebase Variables (Provided by Canvas) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDlTlmk3oj8ZWFU9vC70UX7dL9MCLWmy4Q",
+            authDomain: "suzi-831a8.firebaseapp.com",
+            databaseURL: "https://suzi-831a8-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "suzi-831a8",
+            storageBucket: "suzi-831a8.appspot.com",
+            messagingSenderId: "527210334104",
+            appId: "1:527210334104:web:89854b8d1e99db7ff40ded",
+            measurementId: "G-W9LXYG30DH"
+        };
+        let auth;
+        let userId = null;
+        let userEmail = null; // ✅ STEP 1: Track user email globally
+
+        let isStudentLoggedIn = false;
+
+        // --- Auth Domain Check ---
+        const ALLOWED_DOMAIN = "st.kobedenshi.ac.jp"; // 🔐 STEP 4
+
+        // --- Chat State (Made Global for Memory Reset Fix) ---
+        let chatHistory = [];
+        let INITIAL_BOT_TEXT = "";
+        // ----------------------------------------------------
+
+        // --- DOM Elements ---
+        const authToggleBtn = document.getElementById('auth-toggle-btn');
+        const googleLoginWrapper = document.getElementById('google-login-wrapper'); // Wrapper for Google button
+        const googleLoginBtn = document.getElementById("google-login-btn"); // 🔐 STEP 4
+        const userInfoStatusSpan = document.getElementById('user-info-status');
+        const messagesContainer = document.getElementById('chat-messages');
+        const statusBadge = document.getElementById('status-badge');
+        const chatFormDiv = document.getElementById('chat-form'); // Input bar container
+        const input = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        // --- NEW MEMORY UI ELEMENTS (STEP 4) ---
+        const menuBtn = document.getElementById("menu-btn");
+        const memoryModal = document.getElementById("memory-modal");
+        const deleteMemoryBtn = document.getElementById("delete-memory-btn");
+        const cancelMemoryBtn = document.getElementById("cancel-memory-btn");
+
+        // --- Utility Functions ---
+
+        // STEP 2: Function to show a temporary toast notification
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            const text = document.getElementById("toast-text");
+
+            text.textContent = message;
+            toast.classList.remove("hidden");
+
+            // Reset position before showing (in case it was hidden quickly)
+            toast.style.opacity = "1";
+            toast.style.transform = "translate(-50%, 0)";
+
+            setTimeout(() => {
+                // Animate out
+                toast.style.opacity = "0";
+                toast.style.transform = "translate(-50%, -10px)";
+                // Hide after transition ends
+                setTimeout(() => toast.classList.add("hidden"), 300);
+            }, 3000);
+        }// ================= REMINDER UI =================
+
+        function addReminderConfirm(eventText, eventTimeISO) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "flex gap-2 mt-2";
+
+            const yesBtn = document.createElement("button");
+            yesBtn.textContent = "Yes, remind me";
+            yesBtn.className = "px-3 py-1 bg-sky-500 text-white rounded-full text-sm";
+
+            const noBtn = document.createElement("button");
+            noBtn.textContent = "No";
+            noBtn.className = "px-3 py-1 bg-gray-300 rounded-full text-sm";
+
+            yesBtn.onclick = () => {
+                addReminderOptions(eventText, eventTimeISO);
+                wrapper.remove();
+            };
+
+            noBtn.onclick = () => wrapper.remove();
+
+            wrapper.append(yesBtn, noBtn);
+            messagesContainer.appendChild(wrapper);
+        }
+
+        function addReminderOptions(eventText, eventTimeISO) {
+            const box = document.createElement("div");
+            box.className = "bg-white p-3 rounded-xl shadow mt-2";
+
+            box.innerHTML = `
+    <p class="text-sm font-medium mb-2">When should I remind you?</p>
+    <label class="block text-sm">
+      <input type="checkbox" id="morning"> Morning of that day
+    </label>
+    <label class="block text-sm">
+      <input type="checkbox" id="onehour"> 1 hour before
+    </label>
+    <button class="mt-2 px-3 py-1 bg-green-500 text-white rounded">
+      Save reminder
+    </button>
+  `;
+
+            box.querySelector("button").onclick = () => {
+                saveReminder(
+                    eventText,
+                    eventTimeISO,
+                    document.getElementById("morning").checked,
+                    document.getElementById("onehour").checked
+                );
+                box.remove();
+            };
+
+            messagesContainer.appendChild(box);
+        }
+
+
+        // Function to add a message bubble to the chat window
+        function addMessage(text, role, originalBotText = null) {
+            const messageWrapper = document.createElement('div');
+
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'flex flex-col';
+
+            const messageContent = document.createElement('div');
+
+            let formattedText = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/^- (.*)/gm, '<li>$1</li>')
+                .replace(/\n/g, '<br>');
+
+            if (formattedText.includes('<li>') && !formattedText.includes('<ul>')) {
+                formattedText = '<ul>' + formattedText + '</ul>';
+            }
+
+            // Goal 6: New Bubble Styles
+            if (role === 'user') {
+                messageWrapper.className = 'flex justify-end';
+                // User Bubble (App Style)
+                messageContent.className = 'py-2 px-4 rounded-xl rounded-br-md shadow-md max-w-[85%] text-white';
+                // Using inline style for the specific gradient
+                messageContent.style.background = 'linear-gradient(135deg, #0ea5e9, #0284c7)';
+
+            } else { // bot or system
+                messageWrapper.className = 'flex justify-start';
+                // Bot Bubble (Modern)
+                messageContent.className = 'py-2 px-4 rounded-xl rounded-tl-md shadow-sm max-w-[85%] text-gray-800 border border-gray-200 bg-white';
+            }
+
+            messageContent.innerHTML = formattedText;
+
+            contentWrapper.prepend(messageContent);
+            messageWrapper.appendChild(contentWrapper);
+            messagesContainer.appendChild(messageWrapper);
+
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            return messageContent;
+        }
+
+        // Function to add a dynamic loading indicator (three dots)
+        function addLoadingIndicator(isSummary = false) {
+            const loadingWrapper = document.createElement('div');
+            loadingWrapper.className = 'flex justify-start';
+            loadingWrapper.id = 'loading-indicator';
+
+            const mtClass = isSummary ? 'mt-1' : '';
+
+            // Using new bot bubble style for loading
+            const loadingContent = document.createElement('div');
+            loadingContent.className = `py-2 px-4 rounded-xl rounded-tl-md shadow-sm max-w-[85%] text-gray-800 border border-gray-200 bg-white flex space-x-1 ${mtClass}`;
+
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElement('span');
+                dot.className = 'loading-dot w-2 h-2 bg-sky-600 rounded-full';
+                dot.style.animationDelay = `${i * 0.3}s`;
+                loadingContent.appendChild(dot);
+            }
+
+            loadingWrapper.appendChild(loadingContent);
+            messagesContainer.appendChild(loadingWrapper);
+
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            return loadingWrapper;
+        }
+
+        // Function to remove the loading indicator
+        function removeLoadingIndicator(indicatorElement) {
+            if (indicatorElement) {
+                indicatorElement.remove();
+            }
+        }
+
+
+        // Exponential backoff retry logic for fetch calls
+        async function fetchWithRetry(url, options, retries = 0) {
+            const CHAT_ENDPOINT = "/api/chat";
+            const MAX_RETRIES = 5;
+
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    if (url.startsWith(CHAT_ENDPOINT) && response.status === 500) {
+                        const errorBody = await response.json();
+                        throw new Error(`Proxy Server Error: ${errorBody.error || 'Unknown error'}`);
+                    }
+
+                    if (response.status === 429 && retries < MAX_RETRIES) {
+                        const delay = Math.pow(2, retries) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return fetchWithRetry(url, options, retries + 1);
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response;
+            } catch (error) {
+                if (retries < MAX_RETRIES) {
+                    const delay = Math.pow(2, retries) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithRetry(url, options, retries + 1);
+                }
+                throw error;
+            }
+        }
+
+        // --- SUZI Memory Utilities (NEW EMAIL-BASED) ---
+        // ✅ STEP 3: Save memory
+        function saveUserMemoryByEmail(email, summaryText) {
+            if (!email) return;
+
+            const key = `suzi_memory_email_${email}`;
+
+            const memory = {
+                email,
+                lastUpdated: new Date().toISOString(),
+                summary: summaryText
+            };
+
+            localStorage.setItem(key, JSON.stringify(memory));
+            console.log("🧠 Memory saved for:", email);
+        }
+
+        // ✅ STEP 3: Load memory
+        function loadUserMemoryByEmail(email) {
+            if (!email) return null;
+
+            const key = `suzi_memory_email_${email}`;
+            const raw = localStorage.getItem(key);
+
+            if (!raw) return null;
+
+            try {
+                return JSON.parse(raw);
+            } catch {
+                return null;
+            }
+        }
+
+        // ✅ STEP 3: Delete memory
+        function deleteUserMemoryByEmail(email) {
+            if (!email) return;
+
+            const key = `suzi_memory_email_${email}`;
+            localStorage.removeItem(key);
+
+            console.log("🗑 Memory deleted for:", email);
+        }
+        // ------------------------------------
+
+        // --- Menu Button Logic (STEP 4) ---
+        menuBtn.addEventListener("click", () => {
+            memoryModal.classList.remove("hidden");
+        });
+
+        cancelMemoryBtn.addEventListener("click", () => {
+            memoryModal.classList.add("hidden");
+        });
+
+        // Clear memory from AI context immediately (IMPORTANT) - Modified Handler
+        deleteMemoryBtn.addEventListener("click", () => {
+            // ✅ STEP 4: Use email-based memory
+            deleteUserMemoryByEmail(userEmail);
+
+            // 🔄 Reset chat history (important) - Now uses the globally defined chatHistory
+            chatHistory = [{
+                role: "model",
+                parts: [{ text: INITIAL_BOT_TEXT }]
+            }];
+
+            // Clear the displayed messages from the UI
+            messagesContainer.innerHTML = "";
+
+            // Add the fresh system message
+            addMessage(
+                "🧠 記憶を削除しました。これから新しく会話を始めます。",
+                "bot"
+            );
+            // Re-display the initial welcome message too
+            addMessage(INITIAL_BOT_TEXT, 'bot');
+
+
+            memoryModal.classList.add("hidden");
+        });
+        // ------------------------------------
+
+        // --- Conversation Summarizer (AI-based) ---
+        async function summarizeConversationForMemory(chatHistory) {
+            // Filter history to include ONLY user and model text
+            const conversationText = chatHistory
+                .filter(m => m.role === "user" || m.role === "model")
+                .map(m => m.parts?.[0]?.text || "")
+                .join("\n");
+
+            const summaryPrompt = `
+Summarize the following conversation into a SHORT user memory.
+Focus on:
+- What the user is interested in (e.g., "The user is interested in the IT major and asking about class schedules.")
+- Repeated topics
+- User preferences
+
+Do NOT include greetings or system messages. Only provide the summary text.
+
+Conversation:
+${conversationText}
+`;
+
+            const payload = {
+                contents: [
+                    { role: "user", parts: [{ text: summaryPrompt }] }
+                ]
+            };
+
+            const CHAT_ENDPOINT = "/api/chat";
+
+            try {
+                // Using standard fetch here since this is a background AI call for summarization
+                const response = await fetch(CHAT_ENDPOINT, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.json();
+                    throw new Error(`Summary API error! Status: ${response.status}. Error: ${errorBody.error || 'Unknown'}`);
+                }
+
+                const result = await response.json();
+                return result?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+            } catch (e) {
+                console.error("Summarization failed:", e);
+                return null;
+            }
+        }
+
+
+        // --- Status Badge Management (Goal 8: Visual Badge) ---
+        function updateStatusBadge() {
+            const isPublicOnline = collegeData !== null;
+            const isPrivateOnline = isStudentLoggedIn && privateCollegeData !== null;
+
+            // Goal 8: Visual Badge Style
+            statusBadge.className = "flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium transition duration-200";
+
+            let icon = '';
+            let text = '';
+
+            if (isPrivateOnline) {
+                // 🔵 Private Cloud
+                text = 'Private Cloud';
+                icon = '<i data-lucide="shield" class="w-3 h-3"></i>';
+                statusBadge.classList.add('bg-indigo-100', 'text-indigo-700');
+            } else if (isPublicOnline) {
+                // 🟢 Public Cloud
+                text = 'Cloud Online';
+                icon = '<i data-lucide="cloud" class="w-3 h-3"></i>';
+                statusBadge.classList.add('bg-green-100', 'text-green-700');
+            } else {
+                // 🔴 Offline
+                text = 'Cloud Offline';
+                icon = '<i data-lucide="cloud-off" class="w-3 h-3"></i>';
+                statusBadge.classList.add('bg-red-100', 'text-red-700');
+            }
+
+            statusBadge.innerHTML = icon + text;
+            if (typeof lucide !== 'undefined') lucide.createIcons(); // Re-render icon
+        }
+
+        // --- Data Fetching Logic (Private Cloud) ---
+        async function fetchPrivateCloudData() {
+            if (!isStudentLoggedIn) {
+                privateCollegeData = null;
+                updateStatusBadge();
+                return;
+            }
+
+            const DATA_ENDPOINT = `${PRIVATE_CLOUD_URL}/all_json`;
+            const PRIVATE_KEY_PLACEHOLDER = 'watson-extended-mortality-key-29837';
+
+            try {
+                const response = await fetchWithRetry(DATA_ENDPOINT, {
+                    method: 'GET',
+                    headers: {
+                        "X-STUDENT-KEY": PRIVATE_KEY_PLACEHOLDER
+                    }
+                });
+                privateCollegeData = await response.json();
+
+                console.log("🔐 Private cloud loaded:", privateCollegeData);
+
+                addMessage(
+                    "🔐 **Private cloud data loaded successfully.** 学生専用データが有効になりました。",
+                    "bot"
+                );
+            } catch (error) {
+                console.error("Private cloud failed:", error);
+                privateCollegeData = null;
+
+                addMessage(
+                    "⚠️ **Private cloud is unavailable.** 公開クラウドのみを使用します。",
+                    "bot"
+                );
+            }
+            updateStatusBadge();
+        }
+
+        // --- Data Fetching Logic (Public Cloud) ---
+        async function fetchCloudData() {
+            const DATA_ENDPOINT = `${PUBLIC_CLOUD_URL}/all_json`;
+
+            // Reset status badge before fetch
+            statusBadge.innerHTML = 'Connecting...';
+            statusBadge.className = "flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium transition duration-200 bg-gray-100 text-gray-700";
+
+            try {
+                const response = await fetchWithRetry(DATA_ENDPOINT, { method: 'GET' });
+                const data = await response.json();
+                collegeData = data;
+
+                console.log("Cloud data fetched successfully:", collegeData);
+
+                const infoMessage = `<i data-lucide="cloud-check" class="w-4 h-4 inline mr-1 text-green-600"></i> SUZI has successfully loaded real-time data from the KOBEDENSHI Cloud System. All available data will be used to answer your questions. <br>SUZIは神戸電子のクラウドシステムからリアルタイムデータの読み込みに成功しました。すべての利用可能なデータが質問への回答に使用されます。`;
+                addMessage(infoMessage, 'bot');
+
+            } catch (error) {
+                console.error("Failed to fetch cloud data:", error);
+
+                const errorMessage = `<i data-lucide="cloud-off" class="w-4 h-4 inline mr-1 text-red-600"></i> Alert: SUZI failed to load real-time data from the KOBEDENSHI cloud system. Answers may not reflect the absolute latest information.`;
+                addMessage(errorMessage, 'bot');
+            }
+            updateStatusBadge();
+        }
+
+        // --- Auth UI Management (STEP 5) ---
+        function updateAuthUI() {
+            if (isStudentLoggedIn) {
+                // Logged In State (Hide Login, Show Logout, Show Menu)
+                googleLoginWrapper.classList.add('hidden');
+                authToggleBtn.classList.remove('hidden');
+                authToggleBtn.textContent = 'Logout';
+                authToggleBtn.disabled = false;
+                menuBtn.classList.remove("hidden");
+
+                if (userInfoStatusSpan) {
+                    userInfoStatusSpan.classList.remove('hidden');
+                    // Display user email if available, otherwise fallback to user ID
+                    const displayId = userEmail ? userEmail : (userId ? `${userId.substring(0, 8)}...` : 'Unknown');
+                    userInfoStatusSpan.textContent = `User: ${displayId} (Student)`;
+                }
+
+            } else {
+                // Logged Out State (Show Login, Hide Logout, Hide Menu)
+                googleLoginWrapper.classList.remove('hidden');
+                authToggleBtn.classList.add('hidden');
+                authToggleBtn.disabled = true;
+                menuBtn.classList.add("hidden");
+
+                if (userInfoStatusSpan) {
+                    if (userId) {
+                        userInfoStatusSpan.textContent = `User: ${userId.substring(0, 8)}... (Public)`;
+                    } else {
+                        userInfoStatusSpan.textContent = 'Auth Loading...';
+                    }
+                    userInfoStatusSpan.classList.remove('hidden');
+                }
+            }
+            updateStatusBadge();
+        }
+        function saveReminder(text, timeISO, morning, oneHour) {
+            if (!userEmail || !window._suziDB) return;
+
+            const safeEmail = userEmail.replace(/\./g, "_");
+            const reminderRef = ref(window._suziDB, `reminders/${safeEmail}`);
+
+            push(reminderRef, {
+                text,
+                timeISO,
+                morning,
+                oneHour,
+                createdAt: Date.now()
+            });
+
+            showToast("🔔 Reminder saved");
+        }
+
+        // --- Firebase Auth Logic ---
+        function initFirebase() {
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase config is empty. Auth disabled.");
+                googleLoginBtn.disabled = true;
+                googleLoginBtn.textContent = 'Auth Disabled';
+                if (userInfoStatusSpan) userInfoStatusSpan.textContent = 'Auth Disabled';
+                return;
+            }
+
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            const db = getDatabase(app);
+            window._suziDB = db; // make it global
+          
+
+            // 1. Monitor Firebase Auth State Changes
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    userId = null;
+                    userEmail = null; // ✅ STEP 2: Reset email
+                    isStudentLoggedIn = false;
+                    updateAuthUI();
+                    return;
+                }
+
+                userId = user.uid;
+                const email = user.email || "";
+                const domain = email.split("@")[1];
+
+                if (domain !== ALLOWED_DOMAIN) {
+                    // ❌ Kick out non-student accounts
+                    await signOut(auth); // Sign out the invalid user
+                    isStudentLoggedIn = false;
+                    userEmail = null; // ✅ STEP 2: Reset email
+
+                    addMessage(
+                        "❌ 学生アカウントではありません。ログアウトしました。",
+                        "bot"
+                    );
+                    updateAuthUI();
+                    return;
+                }
+
+                // ✅ Valid student
+                isStudentLoggedIn = true;
+                localStorage.setItem("student_logged_in", "true");
+                userEmail = user.email; // ✅ STEP 2: Set email
+
+                updateAuthUI();
+                fetchPrivateCloudData(); // Load private cloud after successful domain check
+
+                // ✅ STEP 4: Use email-based memory
+                const memory = loadUserMemoryByEmail(userEmail);
+                if (memory?.summary) {
+                    addMessage(
+                        `🧠 **おかえりなさい。** 以前の会話を覚えています。\n\n${memory.summary}`,
+                        "bot"
+                    );
+                }
+            });
+
+            // 2. Initial Sign-In Attempt (Anonymous)
+            if (!auth.currentUser) {
+                signInAnonymously(auth).catch(e => {
+                    console.error("Anonymous sign-in failed.", e);
+                });
+            }
+
+            // 3. Handle Google Login Click
+            googleLoginBtn.addEventListener("click", async () => {
+                const provider = new GoogleAuthProvider();
+
+                try {
+                    const result = await signInWithPopup(auth, provider);
+                    const user = result.user;
+
+                    const email = user.email || "";
+                    const domain = email.split("@")[1];
+
+                    if (domain !== ALLOWED_DOMAIN) {
+                        // ❌ Not a student email
+                        await signOut(auth); // Sign out the failed attempt
+                        isStudentLoggedIn = false;
+                        userEmail = null; // Reset email on failure
+                        updateAuthUI();
+
+                        addMessage(
+                            "❌ このGoogleアカウントは学生用ではありません。\n@st.kobedenshi.ac.jp のみ使用できます。",
+                            "bot"
+                        );
+                        return;
+                    }
+
+                    // ✅ Student verified
+                    isStudentLoggedIn = true;
+                    localStorage.setItem("student_logged_in", "true");
+                    userEmail = user.email; // ✅ STEP 2: Set email
+
+                    addMessage(
+                        `🎓 学生ログイン成功！\n${email} で認証されました。`,
+                        "bot"
+                    );
+
+                } catch (error) {
+                    console.error("Google login failed:", error);
+                    addMessage("⚠️ Googleログインに失敗しました。", "bot");
+                    userEmail = null; // Reset email on error
+                }
+            });
+
+            // 4. Handle Logout Click
+            authToggleBtn.addEventListener('click', async () => {
+                isStudentLoggedIn = false;
+                privateCollegeData = null;
+                localStorage.removeItem("student_logged_in");
+                userEmail = null; // ✅ STEP 2: Reset email
+
+                try {
+                    await signOut(auth);
+
+                    // Fall back to anonymous login after full sign out
+                    await signInAnonymously(auth);
+
+                    addMessage(
+                        "🚪 ログアウトしました。公開クラウドのみを使用します。",
+                        "bot"
+                    );
+                } catch (e) {
+                    console.error("Logout failed, trying anonymous sign-in fallback:", e);
+                    signInAnonymously(auth);
+                    addMessage("Logout failed, but connection was maintained.", 'bot');
+                }
+
+                updateAuthUI();
+            });
+
+            updateAuthUI();
+        }
+
+        // --- Cloud Context Builder ---
+        function buildCloudContext(query) {
+            let context = "";
+
+            // Give memory to AI automatically
+            // ✅ STEP 4: Check for userEmail and use email-based memory
+            if (isStudentLoggedIn && userEmail) {
+                const memory = loadUserMemoryByEmail(userEmail);
+                if (memory?.summary) {
+                    context += `
+[USER MEMORY]
+${memory.summary}
+`;
+                }
+            }
+
+            // 🌐 Public cloud (always)
+            const publicLiveKeys = Object.keys(collegeData || {}).filter(k => k.startsWith("live_"));
+
+            if (publicLiveKeys.length > 0) {
+                const publicLiveData = {};
+                publicLiveKeys.forEach(k => publicLiveData[k] = collegeData[k]);
+
+                context += `
+[KOBEDENSHI Public Cloud Data - Live]
+${JSON.stringify(publicLiveData, null, 2)}
+`;
+            }
+
+            if (collegeData?.announcements) {
+                context += `
+[KOBEDENSHI Public Cloud Data - Announcements]
+${JSON.stringify(collegeData.announcements, null, 2)}
+`;
+            }
+
+            // 🔐 Private cloud (students only)
+            const privateLiveKeys = Object.keys(privateCollegeData || {}).filter(k => k.startsWith("live_"));
+
+            if (isStudentLoggedIn && privateLiveKeys.length > 0) {
+                const privateLiveData = {};
+                privateLiveKeys.forEach(k => privateLiveData[k] = privateCollegeData[k]);
+
+                context += `
+[PRIVATE STUDENT CLOUD DATA – CONFIDENTIAL - Live]
+${JSON.stringify(privateLiveData, null, 2)}
+`;
+            }
+
+            if (isStudentLoggedIn && privateCollegeData?.announcements) {
+                context += `
+[PRIVATE STUDENT CLOUD DATA – CONFIDENTIAL - Announcements]
+${JSON.stringify(privateCollegeData.announcements, null, 2)}
+`;
+            }
+
+            return context.trim();
+        }
+
+        // --- Core Logic Refactor: Single Submission Handler (FIX 3) ---
+        async function handleChatSubmission(userQuery) {
+            const trimmedQuery = userQuery.trim();
+            if (!trimmedQuery) return;
+
+            input.disabled = true;
+            sendBtn.disabled = true;
+            input.value = ''; // Clear input immediately
+
+            const normalizedQuery = trimmedQuery.toLowerCase();
+
+            // --- Time question handling (local JS, no Gemini) ---
+            const timePatterns = [
+                "what time is it", "what time it is", "今何時",
+                "今何時ですか", "いまなんじ", "いまなんじですか"
+            ];
+
+            const matchedTimeQuestion = timePatterns.some(p => normalizedQuery.includes(p.toLowerCase()));
+
+            if (matchedTimeQuestion) {
+                addMessage(trimmedQuery, 'user');
+                const now = new Date();
+                const optionsDate = { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Tokyo" };
+                const optionsTime = { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Tokyo" };
+                const optionsTimeJa = { hour: "numeric", minute: "2-digit", timeZone: "Asia/Tokyo" };
+
+                const dateStr = now.toLocaleDateString("en-US", optionsDate);
+                const timeStr = now.toLocaleTimeString("en-US", optionsTime);
+                const timeStrJa = now.toLocaleTimeString("ja-JP", optionsTimeJa);
+
+                const reply = `
+The current local time at KOBEDENSHI College (Kobe, Japan) is **${timeStr}** on **${dateStr}** (Japan Standard Time, JST).
+
+現在の神戸電子専門学校（日本・神戸）の時刻は **${timeStrJa}（日本時間）** です。
+                `.trim();
+
+                addMessage(reply, 'bot');
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
+                return;
+            }
+
+            // --- AI Text flow ---
+            addMessage(trimmedQuery, 'user');
+            const loadingIndicator = addLoadingIndicator();
+
+            // Use optimized context builder (now includes memory)
+            const contextPrompt = buildCloudContext(trimmedQuery);
+            const fullUserMessage = contextPrompt + (contextPrompt ? "\n\n" : "") + "User Query: " + trimmedQuery;
+
+            // Limit History
+            const MAX_HISTORY_MESSAGES = 20;
+            if (chatHistory.length > MAX_HISTORY_MESSAGES) {
+                chatHistory = [chatHistory[0], ...chatHistory.slice(-(MAX_HISTORY_MESSAGES - 1))];
+            }
+            // ----------------------------
+
+            chatHistory.push({
+                role: "user",
+                parts: [{ text: fullUserMessage }]
+            });
+
+            const payload = {
+                contents: chatHistory,
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: SYSTEM_PROMPT }]
+                },
+            };
+
+            let success = false;
+            try {
+                // Call the secure backend proxy endpoint
+                const response = await fetch(
+                    '/api/chat', // <-- New secure endpoint
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(payload)
+                    }
+                );
+
+                const result = await response.json();
+
+                // Check for a non-200 status or a returned error object from the proxy
+                if (!response.ok || result.error) {
+                    removeLoadingIndicator(loadingIndicator);
+                    const errorMessage = result.error?.message || "An unknown proxy/server error occurred.";
+                    addMessage(`❌ AI Error: ${errorMessage}`, "bot");
+                    chatHistory.pop();
+                } else if (
+                    result.candidates &&
+                    result.candidates.length > 0 &&
+                    result.candidates[0].content?.parts?.length > 0
+                ) {
+                    const aiText = result.candidates[0].content.parts[0].text;
+
+                    chatHistory.push({
+                        role: "model",
+                        parts: [{ text: aiText }]
+                    });
+
+                   
+                    removeLoadingIndicator(loadingIndicator);
+                    addMessage(aiText, "bot");
+                    // --- SIMPLE SCHEDULE DETECTION ---
+                    const scheduleKeywords = ["exam", "test", "class", "meeting", "tomorrow", "am", "pm"];
+
+                    if (scheduleKeywords.some(k => trimmedQuery.toLowerCase().includes(k))) {
+                        // example: tomorrow at 10am (AI already understands time)
+                        const fakeISO = new Date().toISOString();
+
+                        addReminderConfirm(aiText, fakeISO);
+                    }
+
+                    showToast("SUZI replied to your message");
+                    success = true; // Mark success for memory saving
+                } else {
+                    removeLoadingIndicator(loadingIndicator);
+                    addMessage("⚠️ AI returned no response or the format was unexpected.", "bot");
+                    chatHistory.pop();
+                }
+
+                // --- 🧠 Memory Saving Logic ---
+                // ✅ STEP 4: Use email-based memory, check for userEmail
+                if (isStudentLoggedIn && success && userEmail) {
+                    const newSummary = await summarizeConversationForMemory(chatHistory);
+                    if (newSummary) {
+                        saveUserMemoryByEmail(userEmail, newSummary);
+                    }
+                }
+                // ------------------------------------
+
+            } catch (error) {
+                removeLoadingIndicator(loadingIndicator);
+                addMessage(`❌ Network error: ${error.message}`, "bot");
+                chatHistory.pop();
+            }
+
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+        }
+
+
+        function initChatbot() {
+            // --- API Setup ---
+
+            // Initialize global state (FIX: Removed local declaration and initialized global variables)
+            INITIAL_BOT_TEXT = `Hello! I am SUZI, the testing AI assistant for KOBEDENSHI College. I can speak both English and Japanese, and I can access real-time cloud data. How can I help you today?
+<br><br>こんにちは！私は SUZI（スージー） です。
+神戸電子専門学校（KOBEDENSHI）のテスティングAIアシスタントです。
+<br><br>英語と日本語の2か国語で話すことができ、クラウドからのリアルタイムデータも読み取ることができます。
+<br><br>本日は、どのようにお手伝いしましょうか？ ✨`;
+
+            chatHistory = [{
+                role: "model",
+                parts: [{ text: INITIAL_BOT_TEXT }]
+            }];
+
+            // 1. Display the initial message
+            addMessage(INITIAL_BOT_TEXT, 'bot');
+
+            // Initialize Firebase Auth (sets userId asynchronously and loads memory)
+            initFirebase();
+
+            // Start fetching public data immediately
+            fetchCloudData();
+
+            // --- Core Logic: Handle Event Listeners (FIX 3) ---
+
+            // Listen for click on the send button
+            sendBtn.addEventListener('click', async () => {
+                await handleChatSubmission(input.value.trim());
+            });
+
+            // Listen for Enter key on the input field
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault(); // Prevent default browser behavior (which is none now, but safe practice)
+                    handleChatSubmission(input.value.trim());
+                }
+            });
+            // --------------------------------------------------
+        }
+
+        // --- Initialization Call ---
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initChatbot);
+        } else {
+            initChatbot();
+      if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js");
+}
+  }
+    </script>
+</body>
+</html>
