@@ -764,22 +764,84 @@ ${conversationText}
             }
             updateStatusBadge();
         }
-        function saveReminder(text, timeISO, morning, oneHour) {
-            if (!userEmail || !window._suziDB) return;
+        async function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                showToast("❌ Notifications are not supported on this device.");
+                return false;
+            }
 
-            const safeEmail = userEmail.replace(/\./g, "_");
-            const reminderRef = ref(window._suziDB, `reminders/${safeEmail}`);
+            if (Notification.permission === "granted") {
+                return true;
+            }
 
-            push(reminderRef, {
-                text,
-                timeISO,
-                morning,
-                oneHour,
-                createdAt: Date.now()
-            });
+            if (Notification.permission === "denied") {
+                addMessage(
+                    "⚠️ Notifications are blocked. Please enable them in browser settings.",
+                    "bot"
+                );
+                return false;
+            }
 
-            showToast("🔔 Reminder saved");
+            // Ask permission (user-initiated)
+            const permission = await Notification.requestPermission();
+
+            if (permission === "granted") {
+                showToast("✅ Notifications enabled!");
+                return true;
+            } else {
+                showToast("🔕 Notifications not enabled.");
+                return false;
+            }
         }
+
+        async function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                showToast("❌ Notifications are not supported on this device.");
+                return false;
+            }
+
+            if (Notification.permission === "granted") {
+                return true;
+            }
+
+            if (Notification.permission === "denied") {
+                // 🍎 iOS-specific guidance
+                if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+                    addMessage(
+                        "📲 iPhone users: Please add SUZI to your Home Screen to receive notifications.",
+                        "bot"
+                    );
+                } else {
+                    addMessage(
+                        "⚠️ Notifications are blocked. Please enable them in browser settings.",
+                        "bot"
+                    );
+                }
+                return false;
+            }
+
+            // 🔔 Ask permission (user-triggered)
+            const permission = await Notification.requestPermission();
+
+            if (permission === "granted") {
+                showToast("✅ Notifications enabled!");
+                return true;
+            }
+
+            // ❌ User chose "Don't allow"
+            if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+                addMessage(
+                    "📲 To receive reminders on iPhone, please add SUZI to your Home Screen.",
+                    "bot"
+                );
+            } else {
+                showToast("🔕 Notifications not enabled.");
+            }
+
+            return false;
+        }
+
+
 
         // --- Firebase Auth Logic ---
         function initFirebase() {
